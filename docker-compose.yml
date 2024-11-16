@@ -5,8 +5,8 @@ services:
   db:
     image: postgres:13
     environment:
-      POSTGRES_USER: your_postgres_user
-      POSTGRES_PASSWORD: your_postgres_password
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: surfsense_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
