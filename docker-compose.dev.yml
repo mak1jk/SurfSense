@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./SurfSense-Frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./SurfSense-Frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    networks:
+      - surfsense-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./backend:/workspace
+    command: python -m debugpy --listen 0.0.0.0:5678 -m uvicorn server:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      - PYTHONPATH=/workspace
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@db:5432/surfsense_db
+    ports:
+      - "8000:8000"
+      - "5678:5678"  # Debug port
+    depends_on:
+      - db
+    networks:
+      - surfsense-network
+
+  db:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=surfsense_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - surfsense-network
+
+volumes:
+  postgres_data:
+    name: test_postgres_data
+
+networks:
+  surfsense-network:
+    name: test_surfsense-network
+    external: true
