@@ -79,31 +79,32 @@ app.add_middleware(
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def get_user_by_username(db: Session, username: str):
-    return db.query(User).filter(User.username == username).first()
+def get_user_by_email(db: Session, email: str):
+    return db.query(User).filter(User.email == email).first()
 
 def create_user(db: Session, user: UserCreate):
     hashed_password = pwd_context.hash(user.password)
-    db_user = User(username=user.username, hashed_password=hashed_password)
+    db_user = User(email=user.username, username=user.username, hashed_password=hashed_password)
     db.add(db_user)
     db.commit()
-    return "complete"
+    db.refresh(db_user)
+    return db_user
 
 @app.post("/register")
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
     if(user.apisecretkey != API_SECRET_KEY):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    db_user = get_user_by_username(db, username=user.username)
+    db_user = get_user_by_email(db, email=user.username)
     if db_user:
-        raise HTTPException(status_code=400, detail="Username already registered")
+        raise HTTPException(status_code=400, detail="Email already registered")
 
     del user.apisecretkey
     return create_user(db=db, user=user)
 
 # Authenticate the user
 def authenticate_user(username: str, password: str, db: Session):
-    user = db.query(User).filter(User.username == username).first()
+    user = get_user_by_email(db, email=username)
     if not user:
         return False
     if not pwd_context.verify(password, user.hashed_password):
@@ -413,7 +414,6 @@ def save_user_extension_documents(data: RetrivedDocList, db: Session = Depends(g
             raw_documents.append(Document(page_content=content, metadata=doc.metadata.__dict__))
 
            
-            
             
         # pgdocmeta = stringify(doc.metadata.__dict__)
 
